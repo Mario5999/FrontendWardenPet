@@ -1,3 +1,4 @@
+"use client";
 import { useForm } from "react-hook-form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -46,7 +47,7 @@ export function ReminderForm({ open, onClose, onSave, pets }: ReminderFormProps)
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="petId">Mascota *</Label>
-            <Select onValueChange={(value) => setValue('petId', value)}>
+            <Select onValueChange={(value: string) => setValue('petId', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una mascota" />
               </SelectTrigger>
@@ -60,7 +61,7 @@ export function ReminderForm({ open, onClose, onSave, pets }: ReminderFormProps)
 
           <div>
             <Label htmlFor="type">Tipo de Actividad *</Label>
-            <Select onValueChange={(value) => setValue('type', value as Reminder['type'])}>
+            <Select onValueChange={(value: string) => setValue('type', value as Reminder['type'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -45,9 +46,11 @@ export function PetCard({ pet, onEdit, onDelete, onViewDetails }: PetCardProps) 
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {pet.image ? (
-              <img
+              <Image
                 src={pet.image}
                 alt={pet.name}
+                width={56}
+                height={56}
                 className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
               />
             ) : (

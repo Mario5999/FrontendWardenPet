@@ -22,14 +22,15 @@ interface User {
 export function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
   const loadUsers = () => {
     const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
     setUsers(savedUsers);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react/no-direct-mutation-state
+    loadUsers();
+  }, []);
 
   const deleteUser = (userId: string) => {
     const user = users.find(u => u.id === userId);

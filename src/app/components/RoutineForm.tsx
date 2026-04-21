@@ -1,3 +1,4 @@
+"use client";
 import { useForm } from "react-hook-form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -43,7 +44,7 @@ export function RoutineForm({ open, onClose, onSave, pets }: RoutineFormProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="petId">Mascota *</Label>
-            <Select onValueChange={(value) => setValue('petId', value)}>
+            <Select onValueChange={(value: string) => setValue('petId', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una mascota" />
               </SelectTrigger>
@@ -57,7 +58,7 @@ export function RoutineForm({ open, onClose, onSave, pets }: RoutineFormProps) {
 
           <div>
             <Label htmlFor="type">Tipo de Actividad *</Label>
-            <Select onValueChange={(value) => setValue('type', value as Routine['type'])}>
+            <Select onValueChange={(value: string) => setValue('type', value as Routine['type'])}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>

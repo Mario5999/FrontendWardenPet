@@ -45,7 +45,7 @@ export function HealthRecordForm({ open, onClose, onSave, pets }: HealthRecordFo
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="petId">Mascota *</Label>
-            <Select onValueChange={(value) => setValue('petId', value)}>
+            <Select onValueChange={(value: string) => setValue('petId', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona una mascota" />
               </SelectTrigger>

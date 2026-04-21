@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -39,13 +40,22 @@ export function Login({ onLogin }: LoginProps) {
     }
 
     // Verificar usuarios registrados
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: any) => u.email === loginEmail && u.password === loginPassword);
+    interface User {
+      id: string;
+      name: string;
+      email: string;
+      password: string;
+      role: string;
+      createdAt: string;
+      lastLogin: string;
+    }
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: User) => u.email === loginEmail && u.password === loginPassword);
 
     setTimeout(() => {
       if (user) {
         // Actualizar última actividad
-        const updatedUsers = users.map((u: any) =>
+        const updatedUsers = users.map((u: User) =>
           u.email === loginEmail ? { ...u, lastLogin: new Date().toISOString() } : u
         );
         localStorage.setItem('users', JSON.stringify(updatedUsers));
@@ -74,10 +84,19 @@ export function Login({ onLogin }: LoginProps) {
 
     setIsLoading(true);
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    interface User {
+      id: string;
+      name: string;
+      email: string;
+      password: string;
+      role: string;
+      createdAt: string;
+      lastLogin: string;
+    }
+    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
 
     // Verificar si el email ya existe
-    if (users.some((u: any) => u.email === registerEmail)) {
+    if (users.some((u: User) => u.email === registerEmail)) {
       toast.error('El email ya está registrado');
       setIsLoading(false);
       return;

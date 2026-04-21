@@ -1,4 +1,6 @@
+"use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -31,23 +33,30 @@ export function PetForm({ open, onClose, onSave, editingPet }: PetFormProps) {
   const [weight, setWeight] = useState(0);
   const [image, setImage] = useState('');
 
-  useEffect(() => {
-    if (editingPet) {
-      setName(editingPet.name);
-      setType(editingPet.type);
-      setAge(editingPet.age);
-      setBreed(editingPet.breed || '');
-      setWeight(editingPet.weight || 0);
-      setImage(editingPet.image || '');
-    } else {
-      setName('');
-      setType('dog');
-      setAge(0);
-      setBreed('');
-      setWeight(0);
-      setImage('');
+useEffect(() => {
+  const loadForm = () => {
+    if (open) {
+      if (editingPet) {
+        setName(editingPet.name);
+        setType(editingPet.type);
+        setAge(editingPet.age);
+        setBreed(editingPet.breed || '');
+        setWeight(editingPet.weight || 0);
+        setImage(editingPet.image || '');
+      } else {
+        setName('');
+        setType('dog');
+        setAge(0);
+        setBreed('');
+        setWeight(0);
+        setImage('');
+      }
     }
-  }, [editingPet, open]);
+  };
+
+  loadForm();
+}, [editingPet, open]);
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,15 +110,18 @@ export function PetForm({ open, onClose, onSave, editingPet }: PetFormProps) {
             <div className="relative">
               {image ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={image}
                     alt="Preview"
+                    width={128}
+                    height={128}
                     className="w-32 h-32 rounded-full object-cover border-4 border-orange-200 shadow-lg"
                   />
                   <button
                     type="button"
                     onClick={() => setImage('')}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+                    title="Eliminar imagen"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -147,7 +159,7 @@ export function PetForm({ open, onClose, onSave, editingPet }: PetFormProps) {
 
           <div>
             <Label htmlFor="type">Tipo de Mascota *</Label>
-            <Select value={type} onValueChange={(value) => setType(value as Pet['type'])}>
+            <Select value={type} onValueChange={(value: string) => setType(value as Pet['type'])}>
               <SelectTrigger className="border-orange-200 focus:border-orange-400">
                 <SelectValue placeholder="Selecciona el tipo" />
               </SelectTrigger>
@@ -201,7 +213,7 @@ export function PetForm({ open, onClose, onSave, editingPet }: PetFormProps) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
-            <Button type="submit" className="bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500">
+            <Button type="submit" className="bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500" title="Guardar mascota">
               Guardar
             </Button>
           </DialogFooter>
