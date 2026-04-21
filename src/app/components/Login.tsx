@@ -7,6 +7,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'lucide-react';
+import { authService } from '@/services/authService';
 
 interface LoginProps {
   onLogin: (email: string, role: 'user' | 'admin') => void;
@@ -25,51 +26,28 @@ export function Login({ onLogin }: LoginProps) {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Verificar credenciales de administrador
-    if (loginEmail === 'admin@wardenpet.com' && loginPassword === 'admin123') {
-      setTimeout(() => {
-        onLogin(loginEmail, 'admin');
-        toast.success('¡Bienvenido Administrador!');
-        setIsLoading(false);
-      }, 500);
-      return;
-    }
+    try {
+      const response = await authService.login({
+        email: loginEmail,
+        password: loginPassword,
+      });
 
-    // Verificar usuarios registrados
-    interface User {
-      id: string;
-      name: string;
-      email: string;
-      password: string;
-      role: string;
-      createdAt: string;
-      lastLogin: string;
-    }
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: User) => u.email === loginEmail && u.password === loginPassword);
-
-    setTimeout(() => {
-      if (user) {
-        // Actualizar última actividad
-        const updatedUsers = users.map((u: User) =>
-          u.email === loginEmail ? { ...u, lastLogin: new Date().toISOString() } : u
-        );
-        localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-        onLogin(loginEmail, 'user');
-        toast.success(`¡Bienvenido ${user.name}!`);
-      } else {
-        toast.error('Credenciales incorrectas');
-      }
+      onLogin(response.user.email, response.user.role);
+      toast.success(`¡Bienvenido ${response.user.name}!`);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error al iniciar sesión';
+      toast.error(errorMessage);
+      console.error('Login error:', error);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (registerPassword !== registerConfirmPassword) {
@@ -84,42 +62,22 @@ export function Login({ onLogin }: LoginProps) {
 
     setIsLoading(true);
 
-    interface User {
-      id: string;
-      name: string;
-      email: string;
-      password: string;
-      role: string;
-      createdAt: string;
-      lastLogin: string;
-    }
-    const users: User[] = JSON.parse(localStorage.getItem('users') || '[]');
-
-    // Verificar si el email ya existe
-    if (users.some((u: User) => u.email === registerEmail)) {
-      toast.error('El email ya está registrado');
-      setIsLoading(false);
-      return;
-    }
-
-    setTimeout(() => {
-      const newUser = {
-        id: crypto.randomUUID(),
+    try {
+      const response = await authService.register({
         name: registerName,
         email: registerEmail,
         password: registerPassword,
-        role: 'user',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
+      });
 
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-
-      onLogin(registerEmail, 'user');
+      onLogin(response.user.email, response.user.role);
       toast.success('¡Cuenta creada exitosamente!');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Error al crear la cuenta';
+      toast.error(errorMessage);
+      console.error('Register error:', error);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (
