@@ -9,11 +9,12 @@ import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+import { usersService } from '../services/usersService';
+
 interface User {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: string;
   createdAt: string;
   lastLogin: string;
@@ -21,38 +22,43 @@ interface User {
 
 export function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const loadUsers = () => {
-    const savedUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    setUsers(savedUsers);
+  // Cargar usuarios desde el backend
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await usersService.getAllUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al cargar usuarios desde el servidor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react/no-direct-mutation-state
     loadUsers();
   }, []);
 
-  const deleteUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    const updatedUsers = users.filter(u => u.id !== userId);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    // Eliminar también los datos de la mascota del usuario
-    const allUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-    if (user) {
-      delete allUserData[user.email];
-      localStorage.setItem('userData', JSON.stringify(allUserData));
+  // Eliminar usuario en el backend
+  const deleteUser = async (userId: string) => {
+    try {
+      await usersService.deleteUser(userId);
+      toast.success('Usuario eliminado correctamente');
+      loadUsers();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.response?.data?.message || 'Error al eliminar usuario');
     }
-
-    setUsers(updatedUsers);
-    toast.success('Usuario eliminado correctamente');
   };
 
   const isInactive = (lastLogin: string) => {
     const daysSinceLogin = Math.floor(
       (new Date().getTime() - new Date(lastLogin).getTime()) / (1000 * 60 * 60 * 24)
     );
-    return daysSinceLogin > 30; // Inactivo si no ha entrado en 30 días
+    return daysSinceLogin > 30;
   };
 
   const activeUsers = users.filter(u => !isInactive(u.lastLogin));
@@ -70,6 +76,7 @@ export function AdminPanel() {
           </div>
         </header>
 
+        {/* Tarjetas de estadísticas */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="bg-gradient-to-br from-red-100 to-red-200 border-2 border-red-300 shadow-lg hover:shadow-xl transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -109,6 +116,7 @@ export function AdminPanel() {
           </Card>
         </div>
 
+        {/* Tabla de usuarios */}
         <Card className="bg-white/80 border-2 border-blue-200 shadow-xl backdrop-blur">
           <CardHeader className="bg-gradient-to-r from-blue-100 to-cyan-100 border-b-2 border-blue-200">
             <CardTitle className="text-2xl text-blue-800">Lista de Usuarios</CardTitle>
@@ -116,8 +124,11 @@ export function AdminPanel() {
               Gestiona los usuarios registrados en la plataforma
             </CardDescription>
           </CardHeader>
+
           <CardContent className="pt-6">
-            {users.length === 0 ? (
+            {loading ? (
+              <p className="text-center text-blue-700">Cargando usuarios...</p>
+            ) : users.length === 0 ? (
               <div className="text-center py-12">
                 <div className="bg-gradient-to-r from-red-100 to-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Users className="h-10 w-10 text-red-600" />
@@ -128,7 +139,7 @@ export function AdminPanel() {
               <div className="rounded-lg border-2 border-blue-100 overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-100 hover:to-cyan-100">
+                    <TableRow className="bg-gradient-to-r from-blue-100 to-cyan-100">
                       <TableHead className="font-bold text-blue-900">Nombre</TableHead>
                       <TableHead className="font-bold text-blue-900">Email</TableHead>
                       <TableHead className="font-bold text-blue-900">Estado</TableHead>
@@ -137,14 +148,17 @@ export function AdminPanel() {
                       <TableHead className="text-right font-bold text-blue-900">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
+
                   <TableBody>
                     {users.map((user, index) => {
                       const inactive = isInactive(user.lastLogin);
                       const rowColor = index % 2 === 0 ? 'bg-white' : 'bg-gradient-to-r from-blue-50/30 to-cyan-50/30';
+
                       return (
                         <TableRow key={user.id} className={`${rowColor} hover:bg-gradient-to-r hover:from-yellow-50 hover:to-amber-50 transition-all`}>
                           <TableCell className="font-medium text-blue-900">{user.name}</TableCell>
                           <TableCell className="text-blue-800">{user.email}</TableCell>
+
                           <TableCell>
                             {inactive ? (
                               <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white border-0 shadow">
@@ -158,15 +172,15 @@ export function AdminPanel() {
                               </Badge>
                             )}
                           </TableCell>
+
                           <TableCell className="text-blue-800">
                             {format(new Date(user.createdAt), 'dd/MM/yyyy', { locale: es })}
                           </TableCell>
+
                           <TableCell className="text-blue-800">
-                            {formatDistanceToNow(new Date(user.lastLogin), {
-                              addSuffix: true,
-                              locale: es
-                            })}
+                            {formatDistanceToNow(new Date(user.lastLogin), { addSuffix: true, locale: es })}
                           </TableCell>
+
                           <TableCell className="text-right">
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -179,15 +193,15 @@ export function AdminPanel() {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
+
                               <AlertDialogContent className="border-2 border-red-200">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle className="text-red-700">¿Eliminar usuario?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Esta acción eliminará permanentemente la cuenta de <strong>{user.name}</strong> y
-                                    todos los datos asociados (mascotas, recordatorios, registros de salud, etc.).
-                                    Esta acción no se puede deshacer.
+                                    Esta acción eliminará permanentemente la cuenta de <strong>{user.name}</strong> y todos los datos asociados.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
+
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                   <AlertDialogAction

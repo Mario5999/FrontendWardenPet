@@ -17,6 +17,10 @@ import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { format, isPast, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { petsService } from './services/petsService';
+import { remindersService } from './services/remindersService';
+import { healthRecordsService } from './services/healthRecordsService';
+import { routinesService } from './services/routinesService';
 
 interface Pet {
   id: string;
@@ -73,41 +77,52 @@ export default function App() {
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
 
-  // Cargar datos del usuario autenticado
-useEffect(() => {
-  const loadUserData = () => {
-    if (isAuthenticated && currentUser) {
-      const allUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-      const userData = allUserData[currentUser.email] || {
-        pets: [],
-        reminders: [],
-        healthRecords: [],
-        routines: []
-      };
-
-      setPets(prev => userData.pets || prev);
-      setReminders(prev => userData.reminders || prev);
-      setHealthRecords(prev => userData.healthRecords || prev);
-      setRoutines(prev => userData.routines || prev);
-    }
-  };
-
-  loadUserData();
-}, [isAuthenticated, currentUser]);
-
-  // Guardar datos del usuario
+  // Cargar datos desde la API al autenticarse
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
-      const allUserData = JSON.parse(localStorage.getItem('userData') || '{}');
-      allUserData[currentUser.email] = {
-        pets,
-        reminders,
-        healthRecords,
-        routines
-      };
-      localStorage.setItem('userData', JSON.stringify(allUserData));
-    }
-  }, [pets, reminders, healthRecords, routines, isAuthenticated, currentUser]);
+    const loadUserData = async () => {
+      if (isAuthenticated) {
+        try {
+          const [petsData, remindersData, healthData, routinesData] = await Promise.all([
+            petsService.getAllPets().catch(() => []),
+            remindersService.getAllReminders().catch(() => []),
+            healthRecordsService.getAllHealthRecords().catch(() => []),
+            routinesService.getAllRoutines().catch(() => [])
+          ]);
+          
+          setPets(petsData);
+          setReminders(remindersData.map((r: any) => ({
+            id: r.id,
+            petId: r.pet_id,
+            type: r.type,
+            title: r.title,
+            description: r.description,
+            date: r.date,
+            completed: r.completed
+          })));
+          setHealthRecords(healthData.map((h: any) => ({
+            id: h.id,
+            petId: h.pet_id,
+            date: h.date,
+            symptoms: h.symptoms,
+            notes: h.notes,
+            temperature: h.temperature
+          })));
+          setRoutines(routinesData.map((r: any) => ({
+            id: r.id,
+            petId: r.pet_id,
+            type: r.type,
+            time: r.time,
+            description: r.description
+          })));
+        } catch (error) {
+          console.error('Error cargando datos:', error);
+          toast.error('Error cargando datos del servidor');
+        }
+      }
+    };
+
+    loadUserData();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -126,26 +141,40 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, [reminders, pets]);
 
-  const handleSavePet = (petData: Omit<Pet, 'id'> | Pet) => {
-    if ('id' in petData) {
-      setPets(pets.map(p => p.id === petData.id ? petData : p));
-      toast.success('Mascota actualizada');
-    } else {
-      const newPet = { ...petData, id: crypto.randomUUID() };
-      setPets([...pets, newPet]);
-      toast.success('Mascota agregada');
+  const handleSavePet = async (petData: Omit<Pet, 'id'> | Pet) => {
+    try {
+      if ('id' in petData) {
+        // Actualizar mascota existente
+        const updated = await petsService.updatePet(petData.id, petData);
+        setPets(pets.map(p => p.id === petData.id ? updated : p));
+        toast.success('Mascota actualizada');
+      } else {
+        // Crear nueva mascota
+        const newPet = await petsService.createPet(petData);
+        setPets([...pets, newPet]);
+        toast.success('Mascota guardada en la base de datos');
+      }
+      setEditingPet(null);
+    } catch (error) {
+      console.error('Error guardando mascota:', error);
+      toast.error('Error al guardar mascota');
     }
-    setEditingPet(null);
   };
 
-  const handleDeletePet = (id: string) => {
+  const handleDeletePet = async (id: string) => {
     const pet = pets.find(p => p.id === id);
     if (pet && confirm(`¿Eliminar a ${pet.name}?`)) {
-      setPets(pets.filter(p => p.id !== id));
-      setReminders(reminders.filter(r => r.petId !== id));
-      setHealthRecords(healthRecords.filter(r => r.petId !== id));
-      setRoutines(routines.filter(r => r.petId !== id));
-      toast.success('Mascota eliminada');
+      try {
+        await petsService.deletePet(id);
+        setPets(pets.filter(p => p.id !== id));
+        setReminders(reminders.filter(r => r.petId !== id));
+        setHealthRecords(healthRecords.filter(r => r.petId !== id));
+        setRoutines(routines.filter(r => r.petId !== id));
+        toast.success('Mascota eliminada');
+      } catch (error) {
+        console.error('Error eliminando mascota:', error);
+        toast.error('Error al eliminar mascota');
+      }
     }
   };
 
@@ -159,32 +188,97 @@ useEffect(() => {
     setDetailsOpen(true);
   };
 
-  const handleSaveReminder = (reminderData: Omit<Reminder, 'id' | 'completed'>) => {
-    const newReminder = { ...reminderData, id: crypto.randomUUID(), completed: false };
-    setReminders([...reminders, newReminder]);
-    toast.success('Recordatorio agregado');
-  };
-
-  const handleToggleReminder = (id: string) => {
-    setReminders(reminders.map(r =>
-      r.id === id ? { ...r, completed: !r.completed } : r
-    ));
-    const reminder = reminders.find(r => r.id === id);
-    if (reminder) {
-      toast.success(reminder.completed ? 'Recordatorio marcado como pendiente' : 'Recordatorio completado');
+  const handleSaveReminder = async (reminderData: Omit<Reminder, 'id' | 'completed'>) => {
+    try {
+      const newReminder = await remindersService.createReminder({
+        pet_id: reminderData.petId,
+        type: reminderData.type,
+        title: reminderData.title,
+        description: reminderData.description,
+        date: reminderData.date
+      });
+      setReminders([...reminders, {
+        id: newReminder.id,
+        petId: newReminder.pet_id,
+        type: newReminder.type,
+        title: newReminder.title,
+        description: newReminder.description,
+        date: newReminder.date,
+        completed: newReminder.completed
+      }]);
+      toast.success('Recordatorio guardado en la base de datos');
+    } catch (error) {
+      console.error('Error guardando recordatorio:', error);
+      toast.error('Error al guardar recordatorio');
     }
   };
 
-  const handleSaveHealthRecord = (recordData: Omit<HealthRecord, 'id'>) => {
-    const newRecord = { ...recordData, id: crypto.randomUUID() };
-    setHealthRecords([...healthRecords, newRecord]);
-    toast.success('Registro de salud agregado');
+  const handleToggleReminder = async (id: string) => {
+    try {
+      const reminder = reminders.find(r => r.id === id);
+      if (reminder) {
+        const updated = await remindersService.updateReminder(id, {
+          type: reminder.type,
+          title: reminder.title,
+          description: reminder.description,
+          date: reminder.date,
+          completed: !reminder.completed
+        });
+        setReminders(reminders.map(r =>
+          r.id === id ? { ...r, completed: updated.completed } : r
+        ));
+        toast.success(updated.completed ? 'Recordatorio completado' : 'Recordatorio marcado como pendiente');
+      }
+    } catch (error) {
+      console.error('Error actualizando recordatorio:', error);
+      toast.error('Error al actualizar recordatorio');
+    }
   };
 
-  const handleSaveRoutine = (routineData: Omit<Routine, 'id'>) => {
-    const newRoutine = { ...routineData, id: crypto.randomUUID() };
-    setRoutines([...routines, newRoutine]);
-    toast.success('Rutina agregada');
+  const handleSaveHealthRecord = async (recordData: Omit<HealthRecord, 'id'>) => {
+    try {
+      const newRecord = await healthRecordsService.createHealthRecord({
+        pet_id: recordData.petId,
+        date: recordData.date,
+        symptoms: recordData.symptoms,
+        notes: recordData.notes,
+        temperature: recordData.temperature
+      });
+      setHealthRecords([...healthRecords, {
+        id: newRecord.id,
+        petId: newRecord.pet_id,
+        date: newRecord.date,
+        symptoms: newRecord.symptoms,
+        notes: newRecord.notes,
+        temperature: newRecord.temperature
+      }]);
+      toast.success('Registro de salud guardado en la base de datos');
+    } catch (error) {
+      console.error('Error guardando registro de salud:', error);
+      toast.error('Error al guardar registro de salud');
+    }
+  };
+
+  const handleSaveRoutine = async (routineData: Omit<Routine, 'id'>) => {
+    try {
+      const newRoutine = await routinesService.createRoutine({
+        pet_id: routineData.petId,
+        type: routineData.type,
+        time: routineData.time,
+        description: routineData.description
+      });
+      setRoutines([...routines, {
+        id: newRoutine.id,
+        petId: newRoutine.pet_id,
+        type: newRoutine.type,
+        time: newRoutine.time,
+        description: newRoutine.description
+      }]);
+      toast.success('Rutina guardada en la base de datos');
+    } catch (error) {
+      console.error('Error guardando rutina:', error);
+      toast.error('Error al guardar rutina');
+    }
   };
 
   const upcomingReminders = reminders

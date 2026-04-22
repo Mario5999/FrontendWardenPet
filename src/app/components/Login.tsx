@@ -7,7 +7,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import { ShieldCheck } from 'lucide-react';
-import { authService } from '@/services/authService';
+import { authService } from '@/app/services/authService';
 
 interface LoginProps {
   onLogin: (email: string, role: 'user' | 'admin') => void;
@@ -134,11 +134,11 @@ export function Login({ onLogin }: LoginProps) {
                   {isLoading ? 'Ingresando...' : 'Ingresar'}
                 </Button>
 
-                <div className="mt-4 p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg text-sm">
+                {/*<div className="mt-4 p-3 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg text-sm">
                   <p className="font-medium mb-1">Cuenta de prueba - Admin:</p>
                   <p className="text-muted-foreground">Email: admin@wardenpet.com</p>
                   <p className="text-muted-foreground">Contraseña: admin123</p>
-                </div>
+                </div>*/}
               </form>
             </TabsContent>
 
