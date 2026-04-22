@@ -38,8 +38,9 @@ export function Login({ onLogin }: LoginProps) {
 
       onLogin(response.user.email, response.user.role);
       toast.success(`¡Bienvenido ${response.user.name}!`);
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error al iniciar sesión';
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any).response?.data?.message || 'Error al iniciar sesión';
       toast.error(errorMessage);
       console.error('Login error:', error);
     } finally {
@@ -71,8 +72,9 @@ export function Login({ onLogin }: LoginProps) {
 
       onLogin(response.user.email, response.user.role);
       toast.success('¡Cuenta creada exitosamente!');
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Error al crear la cuenta';
+    } catch (error: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const errorMessage = (error as any).response?.data?.message || 'Error al crear la cuenta';
       toast.error(errorMessage);
       console.error('Register error:', error);
     } finally {

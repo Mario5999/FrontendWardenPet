@@ -1,8 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
-
+import { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { cn } from "./utils";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
@@ -125,6 +126,9 @@ function ChartTooltipContent({
     indicator?: "line" | "dot" | "dashed";
     nameKey?: string;
     labelKey?: string;
+    // Estas líneas corrigen los errores de 'payload' y 'label' que no existen
+    payload?: any[];
+    label?: any;
   }) {
   const { config } = useChart();
 
@@ -179,10 +183,12 @@ function ChartTooltipContent({
     >
       {!nestLabel ? tooltipLabel : null}
       <div className="grid gap-1.5">
-        {payload.map((item, index) => {
+        {/* Se añade tipo 'any' e 'index' para corregir errores ts(7006) */}
+        {payload.map((item: any, index: number) => {
           const key = `${nameKey || item.name || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
-          const indicatorColor = color || item.payload.fill || item.color;
+          // Se usa encadenamiento opcional (?.) para evitar errores de propiedad inexistente
+          const indicatorColor = color || item.payload?.fill || item.color;
 
           return (
             <div
@@ -256,11 +262,13 @@ function ChartLegendContent({
   payload,
   verticalAlign = "bottom",
   nameKey,
-}: React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-    hideIcon?: boolean;
-    nameKey?: string;
-  }) {
+}: React.ComponentProps<"div"> & {
+  // Se define payload como opcional y tipo array para corregir errores de 'length' y 'map'
+  payload?: any[];
+  verticalAlign?: "top" | "bottom";
+  hideIcon?: boolean;
+  nameKey?: string;
+}) {
   const { config } = useChart();
 
   if (!payload?.length) {
@@ -275,7 +283,8 @@ function ChartLegendContent({
         className,
       )}
     >
-      {payload.map((item) => {
+      {/* Se añade tipo 'any' para el parámetro 'item' */}
+      {payload.map((item: any) => {
         const key = `${nameKey || item.dataKey || "value"}`;
         const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
