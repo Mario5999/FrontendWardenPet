@@ -1,6 +1,14 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-warden-pet.vercel.app";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://backend-warden-pet.vercel.app";
+
+if (process.env.NODE_ENV === "development" && !process.env.NEXT_PUBLIC_API_URL) {
+  console.warn(
+    "[apiClient] NEXT_PUBLIC_API_URL no definida. Usando URL de producción como fallback. " +
+    "Configúrala en .env.local para desarrollo local."
+  );
+}
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api`,
